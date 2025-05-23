@@ -1,75 +1,76 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Link } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { User } from '../(types)/User';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+export default function Home() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('https://jsonplaceholder.typicode.com/users')
+      .then((res) => res.json())
+      .then(setUsers)
+      .catch((err) => console.error('Failed to fetch users:', err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const renderItem = ({ item }: { item: User }) => (
+    <Link
+      href={{
+        pathname: '/(pages)/map',
+        params: {
+          lat: item.address.geo.lat,
+          lng: item.address.geo.lng,
+          address: `${item.address.street}, ${item.address.city}`,
+          title: item.name
+        },
+      }}
+      asChild
+    >
+      <Pressable
+        android_ripple={{ color: "#ccc" }}
+        style={styles.card}
+      >
+        <Image source={{ uri: 'https://ui-avatars.com/api/?name=' + item.username }} style={styles.img} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontWeight: "bold", fontSize: 20, opacity: 0.9 }}>{item.username}</Text>
+          <Text style={{opacity: 0.7}}><MaterialIcons name="lock"/> ID: {item.id}</Text>
+          <Text style={{opacity: 0.7}}><MaterialIcons name="person"/> {item.name}</Text>
+          <Text style={{opacity: 0.7}}><MaterialIcons name="mail"/> {item.email}
+          </Text>
+          <Text style={{opacity: 0.7}}><MaterialIcons name="location-pin"/> {item.address.street}, {item.address.city}
+          </Text>
+        </View>
+      </Pressable>
+    </Link>
   );
+
+  if (loading) return <Text style={{ textAlign: 'center', marginTop: 40 }}>Loading...</Text>;
+
+  return <FlatList data={users} keyExtractor={(u) => u.id.toString()} renderItem={renderItem} />;
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  card: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    padding: 12,
+    gap: 10,
+    overflow: "hidden",
+    backgroundColor: "#f9f9f9",
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  img: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#eee',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  link: {
+    color: 'blue',
+    marginTop: 5,
+    textDecorationLine: 'underline',
   },
 });
