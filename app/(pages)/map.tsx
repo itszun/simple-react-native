@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useLayoutEffect, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { MapInfo } from '../(types)/MapInfo';
 
 export default function MapScreen() {
@@ -25,44 +25,63 @@ export default function MapScreen() {
 
   useLayoutEffect(() => {
     if (title) {
-      navigation.setOptions({ title: `${title}` });
+      navigation.setOptions({ title });
     }
   }, [navigation, title]);
 
   if (!coordinates) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: 'red' }}>Invalid coordinates provided. Cannot load map.</Text>
-        <Text>{`lat: ${lat}, lng: ${lng}`}</Text>
+        <Text style={{ color: 'red' }}>Invalid coordinates</Text>
       </View>
     );
   }
 
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+      <style> html, body, #map { height: 100%; margin: 0; padding: 0; } </style>
+    </head>
+    <body>
+      <div id="map"></div>
+      <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+      <script>
+        var map = L.map('map').setView([${coordinates.latitude}, ${coordinates.longitude}], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19
+        }).addTo(map);
+        L.marker([${coordinates.latitude}, ${coordinates.longitude}])
+          .addTo(map)
+          .bindPopup("${title || 'Lokasi'}<br>${address || ''}")
+          .openPopup();
+      </script>
+    </body>
+    </html>
+  `;
+
   return (
-    <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: coordinates.latitude,
-          longitude: coordinates.longitude,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }}
-      >
-        <Marker coordinate={coordinates} title={title} description={address} />
-      </MapView>
-      {address && <Text style={styles.address}>{address}</Text>}
-    </View>
+    <WebView
+      originWhitelist={['*']}
+      source={{ html }}
+      style={styles.map}
+      startInLoadingState
+      renderLoading={() => (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" />
+        </View>
+      )}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   map: { flex: 1 },
-  address: { padding: 8, textAlign: 'center' },
   center: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
 });
